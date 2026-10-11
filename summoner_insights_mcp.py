@@ -5,6 +5,7 @@ Provides Claude with access to League of Legends match history and timeline data
 """
 
 import asyncio
+import os
 import sqlite3
 import json
 from typing import Any, Sequence
@@ -15,6 +16,8 @@ import mcp.types as types
 from pydantic import AnyUrl
 import argparse
 import ast
+
+from summoner_insights import account_db_path
 
 
 def is_player_death(details: str, participant_id: int | None) -> bool:
@@ -71,16 +74,14 @@ def average(values) -> float | None:
 class SummonerInsightsMCP:
     def __init__(self, db_path: str = None):
         if db_path is None:
-            import os
-            # Use absolute path relative to this script
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            self.db_path = os.path.join(script_dir, "summoner_insights.db")
-        else:
-            self.db_path = db_path
+            username, tagline = os.getenv('RIOT_USERNAME'), os.getenv('RIOT_TAGLINE')
+            if not username or not tagline:
+                raise ValueError("Missing required environment variables: RIOT_USERNAME, RIOT_TAGLINE")
+            db_path = account_db_path(username, tagline)
+        self.db_path = db_path
         self.server = Server("summoner-insights")
     
     def get_db_connection(self):
-        import os
         if not os.path.exists(self.db_path):
             raise FileNotFoundError(f"Database file not found at: {self.db_path}")
         return sqlite3.connect(self.db_path)
@@ -667,8 +668,8 @@ class SummonerInsightsMCP:
 
 async def main():
     parser = argparse.ArgumentParser(description="Summoner Insights MCP Server")
-    parser.add_argument("--db-path", default="summoner_insights.db", 
-                       help="Path to SQLite database file")
+    parser.add_argument("--db-path",
+                       help="Path to SQLite database file (default: the database of the account in .env)")
     args = parser.parse_args()
     
     server = SummonerInsightsMCP(args.db_path)

@@ -28,8 +28,14 @@ ADDED_MATCH_COLUMNS = {
 
 MATCH_IDS_PAGE_SIZE = 100
 
+
+def account_db_path(username, tagline):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, f"summoner_insights_{username}_{tagline}.db")
+
+
 class SummonerInsights:
-    def __init__(self):
+    def __init__(self, db_path=None):
         self.api_key = os.getenv('RIOT_API_KEY')
         self.username = os.getenv('RIOT_USERNAME')
         self.tagline = os.getenv('RIOT_TAGLINE')
@@ -41,7 +47,7 @@ class SummonerInsights:
         self.base_url = f"https://{self.platform}.api.riotgames.com"
         self.regional_url = self._get_regional_url()
         self.headers = {"X-Riot-Token": self.api_key}
-        self.db_path = 'summoner_insights.db'
+        self.db_path = db_path or account_db_path(self.username, self.tagline)
         self._init_database()
     
     def _get_regional_url(self):

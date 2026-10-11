@@ -6,7 +6,7 @@ import unittest
 from contextlib import closing
 from unittest import mock
 
-from summoner_insights import ADDED_MATCH_COLUMNS, SummonerInsights
+from summoner_insights import ADDED_MATCH_COLUMNS, SummonerInsights, account_db_path
 from summoner_insights_mcp import SummonerInsightsMCP, is_player_death
 
 PLAYER = 4
@@ -69,9 +69,9 @@ class SummonerInsightsTests(unittest.TestCase):
         os.chdir(self.tmp.name)
         self.addCleanup(os.chdir, cwd)
         env = {'RIOT_API_KEY': 'x', 'RIOT_USERNAME': 'x', 'RIOT_TAGLINE': 'EUW1'}
+        self.db_path = os.path.join(self.tmp.name, 'summoner_insights.db')
         with mock.patch.dict(os.environ, env):
-            self.insights = SummonerInsights()
-        self.db_path = os.path.join(self.tmp.name, self.insights.db_path)
+            self.insights = SummonerInsights(db_path=self.db_path)
         self.mcp = SummonerInsightsMCP(db_path=self.db_path)
 
     def store_match(self, events, timeline=True, **overrides):
@@ -123,6 +123,16 @@ class SummonerInsightsTests(unittest.TestCase):
         with closing(sqlite3.connect(self.db_path)) as conn:
             columns = {row[1] for row in conn.execute('PRAGMA table_info(matches)')}
         self.assertLessEqual(set(ADDED_MATCH_COLUMNS), columns)
+
+    def test_each_account_uses_its_own_database(self):
+        self.assertNotEqual(account_db_path('Compux72', 'EUW'), account_db_path('Nana', '46546'))
+        env = {'RIOT_API_KEY': 'x', 'RIOT_USERNAME': 'Nana', 'RIOT_TAGLINE': '46546'}
+        with mock.patch.dict(os.environ, env), \
+                mock.patch.object(SummonerInsights, '_init_database'):
+            downloader_path = SummonerInsights().db_path
+            server_path = SummonerInsightsMCP().db_path
+        self.assertEqual(downloader_path, account_db_path('Nana', '46546'))
+        self.assertEqual(server_path, downloader_path)
 
     def test_is_player_death(self):
         self.assertTrue(is_player_death(str({'killer': 1, 'victim': PLAYER}), PLAYER))

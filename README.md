@@ -115,6 +115,7 @@ RIOT_PLATFORM=NA1
 - `RIOT_USERNAME` is your in-game name (without the #tag)
 - `RIOT_TAGLINE` is your Riot ID tag, the part after the `#` (e.g. `Player#EUW` → `EUW`)
 - `RIOT_PLATFORM` is the server your account plays on (e.g. `EUW1`). It is optional and defaults to `RIOT_TAGLINE`, so set it whenever your tag is not a server code, such as `#EUW` or a custom tag
+- Each account gets its own database file, `summoner_insights_<RIOT_USERNAME>_<RIOT_TAGLINE>.db`, used by both the downloader and the MCP server. To switch accounts, change `RIOT_USERNAME`/`RIOT_TAGLINE`, run the downloader, and restart the MCP server
 - Get your API key from [Riot Developer Portal](https://developer.riotgames.com/). Development keys expire every 24 hours; register your project for a personal key if you use this regularly
 
 ### Supported Platforms
@@ -134,7 +135,7 @@ Run the data collection script to fetch your recent matches:
 
 This will:
 - Check your last 30 matches on the Riot API and download only the ones not stored yet
-- Store match statistics in SQLite database
+- Store match statistics in the account's SQLite database
 - Collect timeline data for detailed analysis
 - Display a summary of the newly downloaded matches
 
